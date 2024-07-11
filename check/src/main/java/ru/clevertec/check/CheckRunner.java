@@ -14,17 +14,19 @@ public class CheckRunner {
     public static void main(String[] args) {
         System.out.println("Starting CheckRunner...");
 
+        String pathToFile = null;
+        String saveToFile = null;
+
         if (args.length == 0) {
             System.out.println("No arguments provided.");
-            System.out.println("Please use this command on the command-line to run the program: 'java -cp src ./src/main/java/ru/clevertec/check/CheckRunner.java id-quantity discountCard=xxxx balanceDebitCard=xxxx'.");
-            System.out.println("Where: id - product number; quantity - quantity of product; discountCard - discount card number; balanceDebitCard - card balance.");
-            writeToResultCSV("ERROR\nBAD REQUEST\n");
+            System.out.println("Please use this command on the command-line to run the program: 'java -cp src ./src/main/java/ru/clevertec/check/CheckRunner.java id-quantity discountCard=xxxx balanceDebitCard=xxxx pathToFile=xxxx saveToFile=xxxx'.");
+            writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
             System.out.println("Terminating CheckRunner due to bad request.");
             return;
         }
 
         String csvFileDiscountCards = "src/main/resources/discountCards.csv";
-        String csvFileProducts = "src/main/resources/products.csv";
+        String csvFileProducts = null; // Path to products CSV file will be determined later
         String line;
         String csvSplitBy = ";";
 
@@ -43,7 +45,7 @@ public class CheckRunner {
             if (arg.contains("-") && !arg.contains("=")) {
                 String[] parts = arg.split("-");
                 if (parts.length != 2) {
-                    writeToResultCSV("ERROR\nBAD REQUEST\n");
+                    writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
                     System.out.println("Terminating CheckRunner due to bad request.");
                     return;
                 }
@@ -52,7 +54,7 @@ public class CheckRunner {
                     int quantity = Integer.parseInt(parts[1]);
                     requestedProducts.merge(id, quantity, Integer::sum);
                 } catch (NumberFormatException e) {
-                    writeToResultCSV("ERROR\nBAD REQUEST\n");
+                    writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
                     System.out.println("Terminating CheckRunner due to bad request.");
                     return;
                 }
@@ -65,20 +67,40 @@ public class CheckRunner {
                         case "discountCard" -> {
                             discountCardNumber = value;
                             if (discountCardNumber.length() != 4) {
-                                writeToResultCSV("ERROR\nBAD REQUEST\n");
+                                writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
                                 System.out.println("Terminating CheckRunner due to bad request.");
                                 return;
                             }
                         }
-                        case "balanceDebitCard" -> balanceDebitCard = BigDecimal.valueOf(Double.parseDouble(value));
+                        case "balanceDebitCard" -> {
+                            try {
+                                balanceDebitCard = BigDecimal.valueOf(Double.parseDouble(value));
+                            } catch (NumberFormatException e) {
+                                writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
+                                System.out.println("Terminating CheckRunner due to bad request.");
+                                return;
+                            }
+                        }
+                        case "pathToFile" -> pathToFile = value;
+                        case "saveToFile" -> saveToFile = value;
                     }
                 } else {
-                    writeToResultCSV("ERROR\nBAD REQUEST\n");
+                    writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
                     System.out.println("Terminating CheckRunner due to bad request.");
                     return;
                 }
             }
         }
+
+        // Check if pathToFile argument is missing
+        if (pathToFile == null) {
+            writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
+            System.out.println("Terminating CheckRunner due to missing pathToFile argument.");
+            return;
+        }
+
+        // Set csvFileProducts based on pathToFile
+        csvFileProducts = pathToFile;
 
         System.out.println("Arguments parsed successfully.");
 
@@ -86,7 +108,7 @@ public class CheckRunner {
 
         try (BufferedReader br = new BufferedReader(new FileReader(csvFileProducts))) {
             System.out.println("Reading products from file: " + csvFileProducts);
-            br.readLine();
+            br.readLine(); // Skip header line
 
             while ((line = br.readLine()) != null) {
                 String[] values = line.split(csvSplitBy);
@@ -101,7 +123,7 @@ public class CheckRunner {
             }
             System.out.println("Products read successfully.");
         } catch (IOException e) {
-            writeToResultCSV("ERROR\nINTERNAL SERVER ERROR\n");
+            writeToResultCSV("ERROR\nINTERNAL SERVER ERROR\n", saveToFile != null ? saveToFile : "result.csv");
             System.out.println("Terminating CheckRunner due to internal server error while reading products.");
             e.printStackTrace();
             return;
@@ -111,7 +133,7 @@ public class CheckRunner {
 
         try (BufferedReader br = new BufferedReader(new FileReader(csvFileDiscountCards))) {
             System.out.println("Reading discount cards from file: " + csvFileDiscountCards);
-            br.readLine();
+            br.readLine(); // Skip header line
 
             while ((line = br.readLine()) != null) {
                 String[] values = line.split(csvSplitBy);
@@ -122,7 +144,7 @@ public class CheckRunner {
             }
             System.out.println("Discount cards read successfully.");
         } catch (IOException e) {
-            writeToResultCSV("ERROR\nINTERNAL SERVER ERROR\n");
+            writeToResultCSV("ERROR\nINTERNAL SERVER ERROR\n", saveToFile != null ? saveToFile : "result.csv");
             System.out.println("Terminating CheckRunner due to internal server error while reading discount cards.");
             e.printStackTrace();
             return;
@@ -173,8 +195,8 @@ public class CheckRunner {
                         totalSum = roundMoneyHalfUp(totalSum.add(total));
                         totalDiscountAmount = roundMoneyHalfUp(totalDiscountAmount.add(discount));
 
-                        if (balanceDebitCard.compareTo(totalSum) < 0) {
-                            writeToResultCSV("ERROR\nNOT ENOUGH MONEY\n");
+                        if (balanceDebitCard != null && balanceDebitCard.compareTo(totalSum) < 0) {
+                            writeToResultCSV("ERROR\nNOT ENOUGH MONEY\n", saveToFile != null ? saveToFile : "result.csv");
                             System.out.println("Terminating CheckRunner due to not enough balance.");
                             return;
                         }
@@ -187,18 +209,18 @@ public class CheckRunner {
 
                         System.out.println("Added product " + product.getName() + " (ID: " + productId + ") to order: " + requestedQuantity + " units.");
                     } else {
-                        writeToResultCSV("ERROR\nBAD REQUEST\n");
+                        writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
                         System.out.println("Terminating CheckRunner due to requested quantity exceeding available stock for product with ID " + productId + ". Available quantity: " + product.getQuantity());
                         return;
                     }
                 } else {
-                    writeToResultCSV("ERROR\nBAD REQUEST\n");
+                    writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
                     System.out.println("Terminating CheckRunner due to product with ID " + productId + " not found.");
                     return;
                 }
             }
         } catch (NullPointerException e) {
-            writeToResultCSV("ERROR\nBAD REQUEST\n");
+            writeToResultCSV("ERROR\nBAD REQUEST\n", saveToFile != null ? saveToFile : "result.csv");
             System.out.println("Terminating CheckRunner due to bad request.");
             return;
         }
@@ -219,20 +241,27 @@ public class CheckRunner {
 
         System.out.println("Finalizing order details...");
 
-        writeToResultCSV(resultBuilder.toString());
+        // Check if saveToFile argument is missing
+        if (saveToFile == null) {
+            writeToResultCSV("ERROR\nBAD REQUEST\n", "result.csv");
+            System.out.println("Terminating CheckRunner due to missing saveToFile argument.");
+            return;
+        }
 
-        System.out.println("Order details written to result.csv.");
+        writeToResultCSV(resultBuilder.toString(), saveToFile);
+
+        System.out.println("Order details written to " + saveToFile);
         System.out.println("CheckRunner execution completed successfully.");
     }
 
-    private static void writeToResultCSV(String content) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("./result.csv"))) {
+    private static void writeToResultCSV(String content, String fileName) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
             writer.write(content);
-            System.out.println("Result written to result.csv:\n");
+            System.out.println("Result written to " + fileName + ":\n");
             System.out.println(content);
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("Failed to write result to result.csv.");
+            System.out.println("Failed to write result to " + fileName);
         }
     }
 
