@@ -67,7 +67,7 @@ id;description;price;quantity_in_stock;wholesale_product
 Use the following command to run the program:
 
 ```sh
-java -cp src ./src/main/java/ru/clevertec/check/CheckRunner.java id-quantity discountCard=xxxx balanceDebitCard=xxxx
+java -cp src ./src/main/java/ru/clevertec/check/CheckRunner.java id-quantity discountCard=xxxx balanceDebitCard=xxxx pathToFile=xxxx saveToFile=xxxx
 ```
 
 Where:
@@ -76,11 +76,13 @@ Where:
 - __`quantity`__ - quantity of product
 - __`discountCard`__ - (optional) discount card number (4 digits)
 - __`balanceDebitCard`__ - balance on the debit card
+- __`pathToFile`__ - path and name of the file from which you want to read information
+- __`saveToFile`__ - path and name of the file where you want to write information
 
 ### Example
 
 ```sh
-java -cp src ./src/main/java/ru/clevertec/check/CheckRunner.java 1-2 2-3 discountCard=1234 balanceDebitCard=50.00
+java -cp src ./src/main/java/ru/clevertec/check/CheckRunner.java 1-2 2-3 discountCard=1234 balanceDebitCard=50.00 pathToFile=./src/main/resources/products.csv saveToFile=./src/results.csv
 ```
 
 In this example, the following are purchased:
@@ -89,6 +91,8 @@ In this example, the following are purchased:
 - 3 units of the product with id 2
 - A discount card with number __`1234`__ is applied
 - The balance on the debit card is __`50.00`__
+- Path and name of the file from which you want to read information __`./src/main/resources/products.csv`__
+- Path and name of the file where you want to write information __`./src/results.csv`__
 
 ### Output
 
