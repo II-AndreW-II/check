@@ -234,7 +234,7 @@ public class CheckRunner {
 
     @SuppressWarnings("deprecation")
     private static BigDecimal roundMoneyHalfUp(BigDecimal value) {
-        return value.setScale(2, BigDecimal.ROUND_HALF_UP);
+        return value.setScale(2, 4);
     }
 }
 
@@ -373,7 +373,7 @@ class RegularDiscountStrategy implements DiscountStrategy {
 
     @SuppressWarnings("deprecation")
     private static BigDecimal roundMoneyHalfUp(BigDecimal value) {
-        return value.setScale(2, BigDecimal.ROUND_HALF_UP);
+        return value.setScale(2, 4);
     }
 }
 
@@ -388,6 +388,6 @@ class WholesaleDiscountStrategy implements DiscountStrategy {
 
     @SuppressWarnings("deprecation")
     private static BigDecimal roundMoneyHalfUp(BigDecimal value) {
-        return value.setScale(2, BigDecimal.ROUND_HALF_UP);
+        return value.setScale(2, 4);
     }
 }
